@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Speech Scheduler</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.11.1/moment.min.js"></script>
+</head>
+<style>
+
+</style>
+<body>
+<div class="controls" id="controls">
+	<h2>Controls</h2>
+	<fieldset>
+		<label for="voice">Voice</label>
+		<select name="voice" id="voice"></select>
+	</fieldset>
+	<fieldset>
+		<label for="volume">Volume</label>
+		<input type="range" min="0" max="1" step="0.1" name="volume" id="volume" value="1">
+	</fieldset>
+	<fieldset>
+		<label for="rate">Rate</label>
+		<input type="range" min="0.1" max="10" step="0.1" name="rate" id="rate" value="1">
+	</fieldset>
+	<fieldset>
+		<label for="pitch">Pitch</label>
+		<input type="range" min="0" max="2" step="0.1" name="pitch" id="pitch" value="1">
+	</fieldset>
+	<fieldset>
+		<label for="message">Message</label>
+		<input type="text" id="message">
+	</fieldset>
+	<fieldset>
+		<label for="date">Date</label>
+		<input type="text" id="date">
+	</fieldset>
+	<fieldset>
+		<label for="time">Time</label>
+		<input type="time" id="time">
+	</fieldset>
+
+	<button id="speak-now" class="button" onclick="speak(messageInput.value)">Speak Now</button>
+	<button id="speak-later" class="button" onclick="scheduleSpeech(messageInput.value, timeInput.value)">Schedule Speech</button>
+</div>
+
+<script>
+	var voiceSelect = document.getElementById('voice');
+	var volumeInput = document.getElementById('volume');
+	var rateInput = document.getElementById('rate');
+	var pitchInput = document.getElementById('pitch');
+	var messageInput = document.getElementById('message');
+	var dateInput = document.getElementById('date');
+	var timeInput = document.getElementById('time');
+
+	function init() {
+        dateInput.value = moment(new Date()).format('YYYY-MM-DD');
+        timeInput.value = moment(new Date()).format('HH:mm:ss');
+
+        loadVoices();
+    }
+
+	// Fetch the list of voices and populate the voice options.
+	function loadVoices() {
+	  	// Fetch the available voices.
+		var voices;
+
+		window.speechSynthesis.onvoiceschanged = function() {
+		    voices = window.speechSynthesis.getVoices();
+
+		    // Loop through each of the voices.
+	    	voices.forEach(function(voice, i) {
+	        	// Create a new option element.
+	    		var option = document.createElement('option');
+
+	        	// Set the options value and text.
+	    		option.value = voice.name;
+	    		option.innerHTML = voice.name;
+
+	        	// Add the option to the voice selector.
+	    		voiceSelect.appendChild(option);
+	    	});
+		};
+	}
+
+	// Create a new utterance for the specified text and add it to the queue
+	function speak(text) {
+		// Create a new instance of SpeechSynthesisUtterance.
+		var msg = new SpeechSynthesisUtterance();
+
+		// Set the text.
+		msg.text = text;
+
+		// Set the attributes.
+		msg.volume = parseFloat(volumeInput.value);
+		msg.rate = parseFloat(rateInput.value);
+		msg.pitch = parseFloat(pitchInput.value);
+
+		// If a voice has been selected, find the voice and set the utterance instance's voice attribute.
+		if (voiceSelect.value) {
+			msg.voice = speechSynthesis.getVoices().filter(function(voice) { return voice.name == voiceSelect.value; })[0];
+		}
+
+		//queue this utterance.
+		window.speechSynthesis.speak(msg);
+	}
+
+	function scheduleSpeech() {
+	    var date = dateInput.value;
+	    var time = timeInput.value;
+	    var currentUnixTime = moment().unix();
+	    var scheduledUnixTime = moment(date + ' ' + time).unix();
+
+	    var remainingTime = scheduledUnixTime - currentUnixTime;
+
+	    if (remainingTime < 0) {
+	        alert('You can\'t schedule something in the past');
+	    } else {
+	    	console.log('Message scheduled for ' + time);
+
+	        setTimeout(function() {
+	    		speak(messageInput.value);
+	        }, remainingTime * 1000);
+	    }
+	}
+
+	init();
+
+</script>
+</body>
+</html>
